@@ -112,9 +112,29 @@ root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><use href="#ok"/><
 assert sanitize_svg(root) == [], "clean same-document references must survive"
 root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><set attributeName="href" to="javascript:x"/><animate attributeName="xlink:href" to="x"/><g onmouseover="x"/></svg>')
 r = sanitize_svg(root); assert len(root) == 1 and not root[0].attrib, r
+# bypass attempts: prefixed animated href, url() in a paint attribute, CSS escape, svg data URI, root-level style/url
+root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg" xmlns:x="http://www.w3.org/1999/xlink" style="fill:u\\72l(http://e)" filter="url(http://e/f)">'
+                     '<animate attributeName="x:href" to="javascript:x"/><path d="M0 0h1" fill="url( http://e/x )" style="fill:url(http://e)"/>'
+                     '<image x:href="data:image/svg+xml,%3Csvg onload=x%3E"/><style>@import "http://e/x.css";</style><style>.a{fill:#f00}</style></svg>')
+r = sanitize_svg(root)
+tags = [el.tag.split("}")[-1] for el in root]
+assert tags == ["path", "style"], (tags, r)
+assert not root.attrib.get("style") and not root.attrib.get("filter"), (root.attrib, r)
+assert set(root[0].attrib) == {"d"}, (root[0].attrib, r)
+assert "@import" not in (root[1].text or "") and ".a{fill:#f00}" in root[1].text
+# fail closed on unparsable input
+import tempfile, os
+from _common import safe_copy_for_render
+fd, bad = tempfile.mkstemp(suffix=".svg"); os.write(fd, b"<svg><script>alert(1)</script>"); os.close(fd)
+try:
+    safe_copy_for_render(bad); raise SystemExit("rendered an unparsable file")
+except ValueError:
+    pass
+finally:
+    os.unlink(bad)
 print("ok")
 PY
-if grep -q "^ok$" "$OUT/sanitize.txt"; then ok "sanitize_svg keeps same-document references and strips animated hrefs"; else bad "sanitize_svg unit check: $(tail -1 "$OUT/sanitize.txt")"; fi
+if grep -q "^ok$" "$OUT/sanitize.txt"; then ok "sanitize_svg keeps same-document references, defeats the known bypasses and fails closed on bad XML"; else bad "sanitize_svg unit check: $(tail -1 "$OUT/sanitize.txt")"; fi
 for w in text gradient filter viewBox; do
   assert "check_logo reports $w" grep -qi "$w" "$OUT/bad.txt"
 done

@@ -93,54 +93,88 @@ def read_svg(path: str | Path) -> tuple[ET.ElementTree, ET.Element]:
     return tree, tree.getroot()
 
 
-UNSAFE_TAGS = {"script", "foreignObject", "iframe", "embed", "object", "audio", "video", "handler", "listener"}
-_HREF_ATTRS = ("href", "{http://www.w3.org/1999/xlink}href")
-_URL_RE = re.compile(r"url\(\s*['\"]?(?!#)[^)]*\)|@import[^;]*;?", re.I)
+_ANIM_TAGS = {"animate", "set", "animateTransform", "animateMotion", "animateColor", "discard", "mpath"}
+UNSAFE_TAGS = {"script", "foreignObject", "iframe", "embed", "object", "audio", "video", "handler", "listener"} | _ANIM_TAGS
+# a url() whose target is not a same-document id (fill="url(http://…)", filter, mask, clip-path, marker-*)
+_EXT_URL_RE = re.compile(r"url\(\s*['\"]?\s*(?!#)", re.I)
+# CSS we never need in a logo and cannot safely inspect by regex: escapes (\72 = 'r'), imports,
+# IE/Mozilla script hooks, any external url()
+_CSS_SUSPECT = re.compile(r"\\|@import|@namespace|expression\s*\(|-moz-binding|behavior\s*:|url\(\s*['\"]?\s*(?!#)", re.I)
+_SAFE_DATA_URI = re.compile(r"^data:image/(png|jpe?g|gif|webp)[;,]", re.I)
+_EXTERNAL_REF_TAGS = {"use", "image", "feImage", "mpath", "textPath", "tref"}
 
 
 def _safe_href(v: str) -> bool:
     v = (v or "").strip()
-    return v.startswith("#") or v.lower().startswith("data:image/")
+    return v.startswith("#") or bool(_SAFE_DATA_URI.match(v))
+
+
+def _clean_attrs(el: ET.Element, removed: list[str]) -> bool:
+    """Strip unsafe attributes from one element. Returns True when the element
+    itself has to go (a <use>/<image> whose only purpose was an external ref)."""
+    tag = local(el.tag)
+    drop = False
+    for a in list(el.attrib):
+        la = local(a)
+        v = el.get(a) or ""
+        if la.lower().startswith("on"):
+            del el.attrib[a]; removed.append(f"@{la}")
+        elif la == "href":  # any namespace or prefix
+            if not _safe_href(v):
+                del el.attrib[a]; removed.append(f"@{la} external")
+                drop = tag in _EXTERNAL_REF_TAGS
+        elif la == "style":
+            if _CSS_SUSPECT.search(v):
+                del el.attrib[a]; removed.append("@style")
+        elif _EXT_URL_RE.search(v):
+            del el.attrib[a]; removed.append(f"@{la} url()")
+    return drop
 
 
 def sanitize_svg(root: ET.Element) -> list[str]:
-    """Remove active or external content from an SVG tree, in place: scripts,
-    foreignObject, event handlers, hrefs that are not same-document ids or
-    inline raster data, external url()/@import in styles. Logo masters never
-    need any of it, and anything we render or embed may come from elsewhere.
+    """Remove active or external content from an SVG tree, in place. A logo is
+    paths and paint, so the rule is an allow-list: no scripts, foreignObject
+    or SMIL animation; no event handlers; hrefs only to same-document ids or
+    inline PNG/JPEG/GIF/WebP data; url() only to same-document ids, in any
+    attribute; styles dropped whole when they hold escapes, @import or an
+    external url(). Anything we render or embed may come from elsewhere.
     Returns a list describing what was removed (empty = already clean)."""
     removed: list[str] = []
-    for a in list(root.attrib):
-        if local(a).lower().startswith("on"):
-            del root.attrib[a]; removed.append(f"@{local(a)}")
+    _clean_attrs(root, removed)
 
     def walk(parent: ET.Element) -> None:
         for child in list(parent):
             tag = local(child.tag)
             if tag in UNSAFE_TAGS:
                 parent.remove(child); removed.append(f"<{tag}>"); continue
-            if tag in ("animate", "set", "animateTransform", "animateMotion") and \
-                    local(child.get("attributeName") or "") in ("href", "xlink:href"):
-                parent.remove(child); removed.append(f"<{tag} href>"); continue
-            drop = False
-            for a in list(child.attrib):
-                la = local(a)
-                if la.lower().startswith("on"):
-                    del child.attrib[a]; removed.append(f"@{la}")
-                elif a in _HREF_ATTRS and not _safe_href(child.get(a)):
-                    del child.attrib[a]; removed.append(f"@{la}={child.get(a, '')!s}"[:60] if False else f"@{la}")
-                    if tag in ("use", "image", "a", "feImage", "mpath", "textPath"):
-                        drop = tag in ("use", "image", "feImage", "mpath")
-                elif la == "style" and _URL_RE.search(child.get(a) or ""):
-                    child.set(a, _URL_RE.sub("", child.get(a) or "")); removed.append("@style url()")
-            if tag == "style" and child.text and _URL_RE.search(child.text):
-                child.text = _URL_RE.sub("", child.text); removed.append("<style> url()")
-            if drop:
+            if tag == "style" and child.text and _CSS_SUSPECT.search(child.text):
+                parent.remove(child); removed.append("<style>"); continue
+            if _clean_attrs(child, removed):
                 parent.remove(child); removed.append(f"<{tag} external>"); continue
             walk(child)
 
     walk(root)
     return removed
+
+
+def safe_copy_for_render(svg_path: str) -> str | None:
+    """If the file holds anything sanitize_svg would remove, write a cleaned
+    copy to a temp file and return its path (caller deletes it); else None.
+    A file ElementTree cannot parse is refused outright: a lenient renderer
+    might still draw it, and then we would have checked nothing."""
+    try:
+        tree, root = read_svg(svg_path)
+    except ET.ParseError as e:
+        raise ValueError(f"{Path(svg_path).name}: not well-formed XML ({e}); refusing to render a file that cannot be checked") from None
+    removed = sanitize_svg(root)
+    if not removed:
+        return None
+    import tempfile
+    fd, tmp = tempfile.mkstemp(suffix=".svg", prefix="logo-craft-safe-")
+    os.close(fd)
+    Path(tmp).write_text(svg_to_string(root), encoding="utf-8")
+    print(f"note: rendering a cleaned copy of {Path(svg_path).name}; removed {', '.join(sorted(set(removed)))}", file=sys.stderr)
+    return tmp
 
 
 def read_svg_clean(path: str) -> ET.Element:
@@ -153,24 +187,6 @@ def read_svg_clean(path: str) -> ET.Element:
         print(f"warning: {Path(path).name}: removed active or external content ({', '.join(sorted(set(removed)))}). "
               "The output is clean; fix the master too.", file=sys.stderr)
     return root
-
-
-def safe_copy_for_render(svg_path: str) -> str | None:
-    """If the file holds anything sanitize_svg would remove, write a cleaned
-    copy to a temp file and return its path (caller deletes it); else None."""
-    try:
-        tree, root = read_svg(svg_path)
-    except ET.ParseError:
-        return None
-    removed = sanitize_svg(root)
-    if not removed:
-        return None
-    import tempfile
-    fd, tmp = tempfile.mkstemp(suffix=".svg", prefix="logo-craft-safe-")
-    os.close(fd)
-    Path(tmp).write_text(svg_to_string(root), encoding="utf-8")
-    print(f"note: rendering a cleaned copy of {Path(svg_path).name}; removed {', '.join(sorted(set(removed)))}", file=sys.stderr)
-    return tmp
 
 
 _IM_POLICY = """<policymap>
