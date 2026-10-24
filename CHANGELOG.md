@@ -19,6 +19,7 @@ First release.
 - `pen_sweep.py` sweeps a broad-edge, pointed, brush or monoline pen along skeleton strokes and unions the outline.
 - `render.py` renders PNGs, the inspection sheet (16 to 128 px, dark/light, one colour, reversed, blur, greyscale) and the concept comparison sheet.
 - `check_logo.py` audits structure, colour, geometry and 16/32 px rasters with a score.
+- Hostile input: `_common.sanitize_svg` strips scripts, event handlers, `foreignObject`, animated hrefs and external `href`/`url()`/`@import` references; every SVG is rendered from a cleaned copy, `lockup.py`/`export_kit.py` clean what they embed (so no active content can reach a favicon or lockup), the ImageMagick fallback runs under a restrictive policy (no MSL/TEXT/URL/PostScript coders, no `@file` reads, no network or display delegates), and `check_logo.py` reports `unsafe-content` as an error. Fixture `tests/fixtures/hostile.svg`.
 - `palette.py` builds OKLCH ramps with WCAG contrast and Machado CVD simulation; writes CSS, Tailwind, Swift and Android tokens.
 - `lockup.py` composes horizontal, stacked, symbol and wordmark files with clear space in cap heights; RTL aware; optional tagline.
 - `export_kit.py` exports the complete kit: SVG masters in colour/black/white, PNGs, favicon.svg with dark-mode rule, favicon.ico 16/32/48, apple-touch-icon, PWA icons incl. maskable, manifest, head snippet, OG image, social avatar, iOS 1024 light/dark/tinted plus Icon Composer layers, Android adaptive VectorDrawables plus legacy mipmaps and Play icon, print PDF, README.

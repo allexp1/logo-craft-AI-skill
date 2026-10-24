@@ -88,6 +88,33 @@ assert "check_logo score >= 90" py "import json,sys; d=json.load(open('$OUT/chec
 python3 "$S/check_logo.py" "$F/bad.svg" > "$OUT/bad.txt" 2>&1
 RC=$?
 if [[ $RC -eq 1 ]]; then ok "check_logo fails the bad file (exit 1)"; else bad "check_logo bad.svg exit $RC (expected 1)"; fi
+
+# hostile SVG: active/external content must be reported, stripped on render and never reach a deliverable
+python3 "$S/check_logo.py" "$F/hostile.svg" --kind symbol > "$OUT/hostile.txt" 2>&1 || true
+if grep -q "unsafe-content" "$OUT/hostile.txt"; then ok "check_logo reports unsafe-content on hostile.svg"; else bad "check_logo missed the hostile content"; fi
+if python3 "$S/render.py" "$F/hostile.svg" --out "$OUT/hostile.png" --size 64 > "$OUT/hostile-render.txt" 2>&1 && [[ -s "$OUT/hostile.png" ]]; then
+  ok "render.py renders a cleaned copy of hostile.svg"
+else bad "render.py failed on hostile.svg"; fi
+if grep -q "cleaned copy" "$OUT/hostile-render.txt"; then ok "render.py says it cleaned the file"; else bad "render.py did not report the cleaning"; fi
+python3 "$S/lockup.py" --symbol "$F/hostile.svg" --wordmark "$F/wordmark.svg" --name hostile --out-dir "$OUT/hostile-lockup" > /dev/null 2>&1 || true
+if ls "$OUT/hostile-lockup"/*.svg > /dev/null 2>&1 && ! grep -l -i -E "<script|onload|onclick|javascript:|foreignObject|evil.example|file://" "$OUT/hostile-lockup"/*.svg > /dev/null; then
+  ok "lockups built from hostile.svg carry no script, handler or external reference"
+else bad "hostile content reached a lockup"; fi
+python3 "$S/export_kit.py" --symbol "$F/hostile.svg" --name hostile --out "$OUT/hostile-kit" --no-pdf > "$OUT/hostile-kit.txt" 2>&1 || true
+if find "$OUT/hostile-kit" -name "*.svg" | grep -q . && ! grep -r -l -i -E "<script|onload|onclick|javascript:|foreignObject|evil.example|file://" "$OUT/hostile-kit" --include="*.svg" > /dev/null; then
+  ok "export kit built from hostile.svg carries no script, handler or external reference"
+else bad "hostile content reached the export kit"; fi
+python3 - "$S" <<'PY' > "$OUT/sanitize.txt" 2>&1
+import sys; sys.path.insert(0, sys.argv[1])
+import xml.etree.ElementTree as ET
+from _common import sanitize_svg
+root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><use href="#ok"/><image href="data:image/png;base64,AA"/><path d="M0 0h1" style="fill:url(#g)"/></svg>')
+assert sanitize_svg(root) == [], "clean same-document references must survive"
+root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><set attributeName="href" to="javascript:x"/><animate attributeName="xlink:href" to="x"/><g onmouseover="x"/></svg>')
+r = sanitize_svg(root); assert len(root) == 1 and not root[0].attrib, r
+print("ok")
+PY
+if grep -q "^ok$" "$OUT/sanitize.txt"; then ok "sanitize_svg keeps same-document references and strips animated hrefs"; else bad "sanitize_svg unit check: $(tail -1 "$OUT/sanitize.txt")"; fi
 for w in text gradient filter viewBox; do
   assert "check_logo reports $w" grep -qi "$w" "$OUT/bad.txt"
 done

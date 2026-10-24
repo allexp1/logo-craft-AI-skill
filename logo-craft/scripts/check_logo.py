@@ -196,8 +196,13 @@ def check(path: str, kind: str, expect_parts: int | None) -> Report:
               "Keep gradients subtle (two tints of one hue) and ship black/white versions.")
     if tags.get("use"):
         r.add("warn", "use", "<use> references: expand them before export; some converters drop them.")
-    if tags.get("foreignObject") or tags.get("script"):
-        r.add("error", "foreign", "<foreignObject>/<script> inside a logo.")
+    import copy as _copy
+    from _common import sanitize_svg
+    unsafe = sanitize_svg(_copy.deepcopy(root))
+    if unsafe:
+        r.add("error", "unsafe-content", "Active or external content in a logo file: " + ", ".join(sorted(set(unsafe))) + ".",
+              "A master is paths and paint only. Remove scripts, event handlers, foreignObject and external hrefs "
+              "(render.py/lockup.py/export_kit.py strip them automatically, but fix the source).")
     if tags.get("mask") or tags.get("clipPath"):
         r.add("info", "mask-clip", "mask/clipPath used: ok for web; convert to real geometry (boolean ops) for the master.")
     style_text = " ".join((el.text or "") for el in root.iter() if local(el.tag) == "style")

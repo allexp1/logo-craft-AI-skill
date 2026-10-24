@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _common import ensure_deps, fmt, read_svg, write_svg  # noqa: E402
+from _common import ensure_deps, fmt, read_svg_clean, write_svg  # noqa: E402
 
 ensure_deps("fontTools")
 from _compose import embed_group, fit_transform, ink_box, new_svg  # noqa: E402
@@ -51,8 +51,8 @@ def main() -> None:
     ap.add_argument("--tagline-size", type=float, default=0.32, help="tagline cap height in main cap heights")
     a = ap.parse_args()
 
-    _, sym = read_svg(a.symbol)
-    _, wm = read_svg(a.wordmark)
+    sym = read_svg_clean(a.symbol)
+    wm = read_svg_clean(a.wordmark)
     rtl = a.rtl or wm.get("data-direction") == "rtl"
     sbox = ink_box(sym)
     wbox, cap, baseline = wordmark_metrics(wm)
@@ -65,7 +65,7 @@ def main() -> None:
 
     tl = None
     if a.tagline:
-        _, tl = read_svg(a.tagline)
+        tl = read_svg_clean(a.tagline)
         tbox, tcap, tbase = wordmark_metrics(tl)
 
     # ---- horizontal

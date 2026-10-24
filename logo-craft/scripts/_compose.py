@@ -8,7 +8,7 @@ import copy
 import re
 import xml.etree.ElementTree as ET
 
-from _common import SVG_NS, fmt, get_viewbox, local, parse_hex, q, to_hex
+from _common import SVG_NS, fmt, get_viewbox, local, parse_hex, q, sanitize_svg, to_hex
 from _geom import ink_bounds, shape_polylines
 
 NAMED = {
@@ -91,6 +91,7 @@ def embed_group(src_root: ET.Element, transform: str | None, prefix: str) -> ET.
         if tag in ("title", "desc", "metadata"):
             continue
         g.append(copy.deepcopy(child))
+    sanitize_svg(g)  # never carry scripts, handlers or external references into a deliverable
     # prefix ids and references
     ids = set()
     for el in g.iter():

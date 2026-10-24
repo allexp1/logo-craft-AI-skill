@@ -117,6 +117,7 @@ cd logo-craft-AI-skill
 - **Clear trademarks.** It compares against marks it knows and the competitors it listed; it cannot search registers. Every handover names USPTO, EUIPO and WIPO.
 - **Generate raster images.** It draws vectors from geometry and type. A painted mascot needs an illustrator or an image model.
 - **Hide its tests.** Every audit score, every skipped check and every licence note goes in the handover.
+- **Pass hostile SVG through.** Any SVG it renders or embeds (a supplied mark, a wordmark, a tagline) is first stripped of scripts, event handlers, `foreignObject` and external references, the ImageMagick fallback runs under a restrictive policy, and `check_logo.py` fails such a file with `unsafe-content`. A logo is paths and paint; nothing else reaches a favicon, a lockup or a renderer.
 
 ## Keeping it current
 

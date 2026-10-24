@@ -28,8 +28,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _common import (ensure_deps, fmt, get_viewbox, local, parse_hex, pixel_fit, q, read_svg, recolor,  # noqa: E402
-                     render_png, svg_to_string, write_svg, contrast)
+from _common import (ensure_deps, fmt, get_viewbox, local, parse_hex, pixel_fit, q, read_svg, read_svg_clean,  # noqa: E402
+                     recolor, render_png, svg_to_string, write_svg, contrast)
 
 ensure_deps("fontTools", "PIL")
 from PIL import Image, ImageDraw  # noqa: E402
@@ -212,10 +212,10 @@ def main() -> None:
     bg = a.bg or "#FFFFFF"
     theme = a.bg or "#FFFFFF"
     fg = a.fg
-    _, symbol = read_svg(a.symbol)
+    symbol = read_svg_clean(a.symbol)
     fav_src = symbol
     if a.favicon_symbol:
-        _, fav_src = read_svg(a.favicon_symbol)
+        fav_src = read_svg_clean(a.favicon_symbol)
     written = []
 
     def W(path, content):
@@ -231,7 +231,7 @@ def main() -> None:
     sets = {"symbol": symbol}
     for key, p in (("lockup-horizontal", a.lockup), ("lockup-stacked", a.stacked), ("wordmark", a.wordmark)):
         if p:
-            sets[key] = read_svg(p)[1]
+            sets[key] = read_svg_clean(p)
     for key, root in sets.items():
         col, blk, wht = variants(root, a.mono)
         for vname, vroot in (("color", col), ("black", blk), ("white", wht)):

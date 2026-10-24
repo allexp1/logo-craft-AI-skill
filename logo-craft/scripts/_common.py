@@ -93,6 +93,132 @@ def read_svg(path: str | Path) -> tuple[ET.ElementTree, ET.Element]:
     return tree, tree.getroot()
 
 
+UNSAFE_TAGS = {"script", "foreignObject", "iframe", "embed", "object", "audio", "video", "handler", "listener"}
+_HREF_ATTRS = ("href", "{http://www.w3.org/1999/xlink}href")
+_URL_RE = re.compile(r"url\(\s*['\"]?(?!#)[^)]*\)|@import[^;]*;?", re.I)
+
+
+def _safe_href(v: str) -> bool:
+    v = (v or "").strip()
+    return v.startswith("#") or v.lower().startswith("data:image/")
+
+
+def sanitize_svg(root: ET.Element) -> list[str]:
+    """Remove active or external content from an SVG tree, in place: scripts,
+    foreignObject, event handlers, hrefs that are not same-document ids or
+    inline raster data, external url()/@import in styles. Logo masters never
+    need any of it, and anything we render or embed may come from elsewhere.
+    Returns a list describing what was removed (empty = already clean)."""
+    removed: list[str] = []
+    for a in list(root.attrib):
+        if local(a).lower().startswith("on"):
+            del root.attrib[a]; removed.append(f"@{local(a)}")
+
+    def walk(parent: ET.Element) -> None:
+        for child in list(parent):
+            tag = local(child.tag)
+            if tag in UNSAFE_TAGS:
+                parent.remove(child); removed.append(f"<{tag}>"); continue
+            if tag in ("animate", "set", "animateTransform", "animateMotion") and \
+                    local(child.get("attributeName") or "") in ("href", "xlink:href"):
+                parent.remove(child); removed.append(f"<{tag} href>"); continue
+            drop = False
+            for a in list(child.attrib):
+                la = local(a)
+                if la.lower().startswith("on"):
+                    del child.attrib[a]; removed.append(f"@{la}")
+                elif a in _HREF_ATTRS and not _safe_href(child.get(a)):
+                    del child.attrib[a]; removed.append(f"@{la}={child.get(a, '')!s}"[:60] if False else f"@{la}")
+                    if tag in ("use", "image", "a", "feImage", "mpath", "textPath"):
+                        drop = tag in ("use", "image", "feImage", "mpath")
+                elif la == "style" and _URL_RE.search(child.get(a) or ""):
+                    child.set(a, _URL_RE.sub("", child.get(a) or "")); removed.append("@style url()")
+            if tag == "style" and child.text and _URL_RE.search(child.text):
+                child.text = _URL_RE.sub("", child.text); removed.append("<style> url()")
+            if drop:
+                parent.remove(child); removed.append(f"<{tag} external>"); continue
+            walk(child)
+
+    walk(root)
+    return removed
+
+
+def read_svg_clean(path: str) -> ET.Element:
+    """read_svg + sanitize_svg: the root of `path` with active or external
+    content removed, warning on stderr about what went. Use it for every file
+    whose children end up inside a deliverable."""
+    _, root = read_svg(path)
+    removed = sanitize_svg(root)
+    if removed:
+        print(f"warning: {Path(path).name}: removed active or external content ({', '.join(sorted(set(removed)))}). "
+              "The output is clean; fix the master too.", file=sys.stderr)
+    return root
+
+
+def safe_copy_for_render(svg_path: str) -> str | None:
+    """If the file holds anything sanitize_svg would remove, write a cleaned
+    copy to a temp file and return its path (caller deletes it); else None."""
+    try:
+        tree, root = read_svg(svg_path)
+    except ET.ParseError:
+        return None
+    removed = sanitize_svg(root)
+    if not removed:
+        return None
+    import tempfile
+    fd, tmp = tempfile.mkstemp(suffix=".svg", prefix="logo-craft-safe-")
+    os.close(fd)
+    Path(tmp).write_text(svg_to_string(root), encoding="utf-8")
+    print(f"note: rendering a cleaned copy of {Path(svg_path).name}; removed {', '.join(sorted(set(removed)))}", file=sys.stderr)
+    return tmp
+
+
+_IM_POLICY = """<policymap>
+  <policy domain="coder" rights="none" pattern="MSL"/>
+  <policy domain="coder" rights="none" pattern="TEXT"/>
+  <policy domain="coder" rights="none" pattern="URL"/>
+  <policy domain="coder" rights="none" pattern="HTTPS"/>
+  <policy domain="coder" rights="none" pattern="HTTP"/>
+  <policy domain="coder" rights="none" pattern="FTP"/>
+  <policy domain="coder" rights="none" pattern="EPHEMERAL"/>
+  <policy domain="coder" rights="none" pattern="SHOW"/>
+  <policy domain="coder" rights="none" pattern="WIN"/>
+  <policy domain="coder" rights="none" pattern="PS"/>
+  <policy domain="coder" rights="none" pattern="PS2"/>
+  <policy domain="coder" rights="none" pattern="PS3"/>
+  <policy domain="coder" rights="none" pattern="EPS"/>
+  <policy domain="coder" rights="none" pattern="PDF"/>
+  <policy domain="coder" rights="none" pattern="XPS"/>
+  <policy domain="path" rights="none" pattern="@*"/>
+  <policy domain="delegate" rights="none" pattern="show"/>
+  <policy domain="delegate" rights="none" pattern="win"/>
+  <policy domain="delegate" rights="none" pattern="edit"/>
+  <policy domain="delegate" rights="none" pattern="print"/>
+  <policy domain="delegate" rights="none" pattern="https"/>
+  <policy domain="delegate" rights="none" pattern="http"/>
+  <policy domain="delegate" rights="none" pattern="ftp"/>
+  <policy domain="resource" name="memory" value="512MiB"/>
+  <policy domain="resource" name="time" value="60"/>
+</policymap>
+"""
+
+
+def imagemagick_env() -> dict:
+    """Environment for ImageMagick with a restrictive policy on top of the
+    system one: no MSL/MVG/TEXT/URL/PostScript coders, no indirect @file
+    reads, no network or display delegates. The SVG delegate (inkscape or
+    librsvg, whichever the build uses) stays, since it only ever sees the
+    sanitised copy."""
+    d = CACHE_DIR / "imagemagick-policy"
+    d.mkdir(parents=True, exist_ok=True)
+    pol = d / "policy.xml"
+    if not pol.exists() or pol.read_text() != _IM_POLICY:
+        pol.write_text(_IM_POLICY)
+    env = dict(os.environ)
+    env["MAGICK_CONFIGURE_PATH"] = str(d) + (os.pathsep + env["MAGICK_CONFIGURE_PATH"] if env.get("MAGICK_CONFIGURE_PATH") else "")
+    return env
+
+
 def svg_to_string(root: ET.Element) -> str:
     body = ET.tostring(root, encoding="unicode")
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + body + "\n"
@@ -380,6 +506,20 @@ def render_png(svg_path: str | Path, png_path: str | Path, width: int, height: i
             "`pip install cairosvg`, resvg, Inkscape or ImageMagick."
         )
     errors = []
+    cleaned = safe_copy_for_render(svg_path)
+    if cleaned:
+        svg_path = cleaned
+    try:
+        return _render_png_inner(svg_path, png_path, width, height, background, options, errors)
+    finally:
+        if cleaned:
+            try:
+                os.unlink(cleaned)
+            except OSError:
+                pass
+
+
+def _render_png_inner(svg_path, png_path, width, height, background, options, errors) -> str:
     for r in options:
         try:
             if r == "rsvg-convert":
@@ -406,9 +546,9 @@ def render_png(svg_path: str | Path, png_path: str | Path, width: int, height: i
                 subprocess.run(cmd, check=True, capture_output=True)
             elif r == "imagemagick":
                 exe = "magick" if _have("magick") else "convert"
-                cmd = [exe, "-background", background or "none", "-density", "384", svg_path,
-                       "-resize", f"{width}x{height}", "-gravity", "center", "-extent", f"{width}x{height}", png_path]
-                subprocess.run(cmd, check=True, capture_output=True)
+                cmd = [exe, "-background", background or "none", "-density", "384", "svg:" + svg_path,
+                       "-resize", f"{width}x{height}", "-gravity", "center", "-extent", f"{width}x{height}", "png32:" + png_path]
+                subprocess.run(cmd, check=True, capture_output=True, env=imagemagick_env())
             elif r in ("chrome-mac", "google-chrome", "chromium", "chromium-browser", "chrome"):
                 exe = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" if r == "chrome-mac" else r
                 cmd = [exe, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--default-background-color=00000000",
