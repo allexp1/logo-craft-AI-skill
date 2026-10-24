@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <defs><linearGradient id="g"><stop offset="0" stop-color="#f00"/><stop offset="1" stop-color="#00f"/></linearGradient>
+  <filter id="f"><feGaussianBlur stdDeviation="2"/></filter></defs>
+  <rect x="10" y="10" width="180" height="180" fill="url(#g)" filter="url(#f)"/>
+  <path d="M20 180 L 60 20 L 100 180" fill="none" stroke="#000" stroke-width="0.5"/>
+  <path d="M110 30 L 190 33" stroke="#000" stroke-width="3" fill="none"/>
+  <text x="20" y="120" font-family="Helvetica" font-size="40">Acme</text>
+  <circle cx="150" cy="150" r="20" fill="#f0f"/><circle cx="150" cy="150" r="20" fill="#0ff" id="dup"/><rect id="dup" x="0" y="0" width="1" height="1" fill="#123"/>
+</svg>

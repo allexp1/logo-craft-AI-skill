@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Test lens mark</title>
+  <path fill="#2B2F7A" fill-rule="evenodd" d="M4 50 A46 46 0 0 1 96 50 A46 46 0 0 1 4 50 Z M22 50 A28 28 0 0 0 78 50 A28 28 0 0 0 22 50 Z"/>
+  <g transform="translate(50 50) rotate(45)">
+    <rect x="-9" y="-9" width="18" height="18" rx="3" fill="#F4A300"/>
+  </g>
+</svg>

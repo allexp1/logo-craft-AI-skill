@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: hebrew-kids-learning-wordmark
+expected_outcome: |
+  Two wordmarks (Hebrew and Latin) set from licensed fonts that visually match in weight and character, with correct RTL shaping for the Hebrew one; a simple symbol that reads at 16 px and relates to the wordmarks; lockups with the symbol on the correct side for each script; a palette suitable for a kids' product that still passes contrast for UI use and a colour-vision check; licences named; an honest note about trademark clearance. All in ./brand.

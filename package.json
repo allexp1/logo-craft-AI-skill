@@ -1,0 +1,45 @@
+{
+  "name": "logo-craft",
+  "version": "1.0.0",
+  "description": "An agent skill for Claude Code: designs company and product logos from a project's own context with a senior identity designer's method (brief, concepts in black, optics, real typography, calligraphy, OKLCH colour, small-size tests) and ships the full icon kit for web, iOS and Android.",
+  "bin": {
+    "logo-craft": "bin/install.js"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=16.7.0"
+  },
+  "files": [
+    "bin/",
+    "logo-craft/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "agent-skill",
+    "skill",
+    "logo",
+    "logo-design",
+    "brand-identity",
+    "wordmark",
+    "app-icon",
+    "favicon",
+    "svg",
+    "typography",
+    "calligraphy",
+    "design"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allexp1/logo-craft-AI-skill.git"
+  },
+  "homepage": "https://github.com/allexp1/logo-craft-AI-skill#readme",
+  "bugs": {
+    "url": "https://github.com/allexp1/logo-craft-AI-skill/issues"
+  },
+  "license": "MIT"
+}

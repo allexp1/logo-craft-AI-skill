@@ -1,0 +1,49 @@
+logo-craft
+==========
+
+This project is an independent design reference and toolset. It is not
+produced, endorsed, sponsored or approved by any of the companies whose logos
+it discusses, nor by Apple Inc., Google LLC or the publishers of the works it
+cites.
+
+Trademarks
+----------
+Nike, Apple, IBM, ABC, Chase, Mastercard, Airbnb, Slack, FedEx, Target, Pepsi,
+Burberry, Google, Nokia, Instagram, Gap, Tropicana, Kia, Jaguar, UPS, Amazon,
+Coca-Cola, Ford, Kellogg's, Disney, Cadbury, Toblerone, Baskin-Robbins,
+Michelin, OpenAI, MIT Media Lab, London 2012 and every other brand named in
+the reference files are trademarks of their respective owners. They are
+mentioned only to discuss publicly documented design history. This repository
+contains no copies of those logos and must never be used to reproduce or
+imitate them; `references/case-studies.md` describes, it does not draw.
+
+Platform names (iOS, iPadOS, macOS, watchOS, visionOS, Icon Composer, Xcode,
+San Francisco, Liquid Glass, Android, Google Play, Material) are trademarks of
+Apple Inc. and Google LLC respectively, used for identification only.
+
+Fonts
+-----
+`logo-craft/assets/fonts.json` lists typefaces by name with their licence
+family (SIL OFL, Apache 2.0, UFL, commercial). No font files are bundled.
+`scripts/text_to_path.py` downloads Google Fonts files into the user's cache
+under the licence each family carries, or uses fonts the user already has.
+Whether a licence allows logo use is reported, not guaranteed; the user is
+responsible for honouring the EULA of any font they ship.
+
+Source material
+---------------
+The guidance is an original synthesis of publicly available writing by the
+designers and researchers listed in `logo-craft/references/sources.md`. No
+text is reproduced verbatim beyond short attributed phrases. Platform
+specifications reflect the vendor pages on the date given in each file and
+may since have changed; `logo-craft/.living/` tracks those changes.
+
+Trademark clearance
+-------------------
+Nothing this skill produces has been searched against any trademark register.
+A logo it designs may resemble an existing registered mark. Search USPTO,
+EUIPO and WIPO (or ask counsel) before using a mark commercially.
+
+The MIT license in LICENSE applies to the original written content and code in
+this repository. It grants no rights in any third party's trademarks, logos,
+fonts or copyrighted text.

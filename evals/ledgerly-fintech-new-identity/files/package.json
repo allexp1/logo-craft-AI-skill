@@ -1,0 +1,2 @@
+{ "name": "ledgerly", "description": "Invoices and payments for freelancers, without the spreadsheet", "keywords": ["invoice", "payments", "freelance"],
+  "dependencies": { "next": "15.0.0", "react": "19.0.0", "stripe": "17.0.0", "tailwindcss": "4.0.0" } }

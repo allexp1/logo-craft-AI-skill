@@ -1,0 +1,175 @@
+{
+  "about": "Curated open-licence typefaces for wordmarks, grouped by voice. Every family is on Google Fonts (text_to_path.py downloads it on first use). OFL = SIL Open Font License 1.1: free for commercial logos, no attribution needed; the artwork is yours. Reserved Font Names only matter if you redistribute a modified font file. Apache = Apache 2.0, same practical freedom. Always confirm the licence line text_to_path.py prints from the font's own name table.",
+  "pairing_rule": "One typeface in a logo, two at most (wordmark + descriptor). Contrast structure (serif/sans, geometric/humanist), never two near-identical sans faces.",
+  "groups": [
+    {
+      "name": "Geometric sans",
+      "voice": "modern, product-like, neutral-to-friendly; the default for tech and consumer apps",
+      "fonts": [
+        {"family": "Inter", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Neutral UI sans; wide, open; needs tracking tightened (-10 to -30) at logo size. Safe but common."},
+        {"family": "Manrope", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Rounder, friendlier than Inter; good lowercase wordmarks."},
+        {"family": "Space Grotesk", "license": "OFL", "scripts": ["Latin"], "note": "Quirky terminals (a, g, y); strong character for developer and design brands."},
+        {"family": "DM Sans", "license": "OFL", "scripts": ["Latin"], "note": "Low contrast, geometric, slightly warm; variable optical sizes."},
+        {"family": "Plus Jakarta Sans", "license": "OFL", "scripts": ["Latin"], "note": "Wide, confident, contemporary; good for caps wordmarks."},
+        {"family": "Outfit", "license": "OFL", "scripts": ["Latin"], "note": "Pure geometric (Futura-like); round o, pointed apexes; strong at heavy weights."},
+        {"family": "Sora", "license": "OFL", "scripts": ["Latin"], "note": "Squared geometric with tech feel; crypto/AI brands use it a lot (so beware of sameness)."},
+        {"family": "Urbanist", "license": "OFL", "scripts": ["Latin"], "note": "Elegant geometric with thin options; fashion-adjacent tech."},
+        {"family": "Figtree", "license": "OFL", "scripts": ["Latin"], "note": "Friendly, balanced; fine default for consumer products."},
+        {"family": "Onest", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Neutral with soft details; works for Cyrillic brands."},
+        {"family": "Lexend", "license": "OFL", "scripts": ["Latin"], "note": "Built for reading ease; wide; good for education and accessibility-minded brands."},
+        {"family": "Geist", "license": "OFL", "scripts": ["Latin"], "note": "Vercel's typeface; crisp, Swiss; developer tools (very recognisable as Vercel-adjacent)."}
+      ]
+    },
+    {
+      "name": "Grotesque / neo-grotesque",
+      "voice": "serious, editorial, engineered; infrastructure, finance, B2B",
+      "fonts": [
+        {"family": "Archivo", "license": "OFL", "scripts": ["Latin"], "note": "Grotesque with width axis (Archivo Narrow/Expanded via wdth); strong caps."},
+        {"family": "IBM Plex Sans", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek", "Arabic (Plex Sans Arabic)", "Hebrew (Plex Sans Hebrew)"], "note": "Engineered, slightly rationalist; pairs with IBM Plex Mono/Serif. Hebrew and Arabic companions exist."},
+        {"family": "Public Sans", "license": "OFL", "scripts": ["Latin"], "note": "US government neutral grotesque; trustworthy, civic."},
+        {"family": "Instrument Sans", "license": "OFL", "scripts": ["Latin"], "note": "Compact grotesque with width axis; design-studio flavour."},
+        {"family": "Schibsted Grotesk", "license": "OFL", "scripts": ["Latin"], "note": "Newsy, sturdy; media and publishing."},
+        {"family": "Work Sans", "license": "OFL", "scripts": ["Latin"], "note": "Early-grotesque warmth; good at display weights."},
+        {"family": "Hanken Grotesk", "license": "OFL", "scripts": ["Latin"], "note": "Clean, slightly narrow; versatile."},
+        {"family": "Bricolage Grotesque", "license": "OFL", "scripts": ["Latin"], "note": "Lively, idiosyncratic; creative studios, food, culture."}
+      ]
+    },
+    {
+      "name": "Humanist sans",
+      "voice": "warm, human, approachable; health, education, services, NGOs",
+      "fonts": [
+        {"family": "Nunito", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Rounded terminals; kids, wellness, friendly consumer. Nunito Sans is the un-rounded sibling."},
+        {"family": "Source Sans 3", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Adobe's humanist workhorse; quiet, trustworthy."},
+        {"family": "Open Sans", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek", "Hebrew"], "note": "Ubiquitous; includes Hebrew. Safe, little personality."},
+        {"family": "Fira Sans", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Mozilla's humanist; technical warmth; many weights."},
+        {"family": "Mulish", "license": "OFL", "scripts": ["Latin"], "note": "Minimalist humanist; soft."},
+        {"family": "Atkinson Hyperlegible", "license": "OFL", "scripts": ["Latin"], "note": "Designed for low vision; distinct letterforms (great for accessibility brands)."},
+        {"family": "Fredoka", "license": "OFL", "scripts": ["Latin", "Hebrew"], "note": "Rounded, chubby, playful; kids brands; includes Hebrew."}
+      ]
+    },
+    {
+      "name": "Serif (display and text)",
+      "voice": "heritage, editorial, premium, cultural; also warmth for food and craft",
+      "fonts": [
+        {"family": "Playfair Display", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "High-contrast transitional; fashion, editorial. Overused in weddings."},
+        {"family": "Fraunces", "license": "OFL", "scripts": ["Latin"], "note": "Soft 'wonky' old-style with optical size axis (opsz) and SOFT/WONK axes; food, craft, friendly premium."},
+        {"family": "Cormorant Garamond", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Elegant display Garamond; luxury, culture; thin at small sizes (use for wordmarks ≥ 24 px)."},
+        {"family": "DM Serif Display", "license": "OFL", "scripts": ["Latin"], "note": "Bold Didone-ish display; confident single-weight."},
+        {"family": "Libre Baskerville", "license": "OFL", "scripts": ["Latin"], "note": "Sturdy transitional; law, publishing, trust."},
+        {"family": "Lora", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Calligraphic roots, moderate contrast; storytelling brands."},
+        {"family": "Newsreader", "license": "OFL", "scripts": ["Latin"], "note": "News-style with opsz axis; journalism, research."},
+        {"family": "Instrument Serif", "license": "OFL", "scripts": ["Latin"], "note": "Condensed, chic display serif; studios, fashion."},
+        {"family": "Source Serif 4", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Robust transitional; pairs with Source Sans 3."},
+        {"family": "EB Garamond", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Faithful Garamond revival; classical authority."},
+        {"family": "Cinzel", "license": "OFL", "scripts": ["Latin"], "note": "Roman inscriptional capitals (Trajan-like); institutions, film, heritage. Caps only in spirit."},
+        {"family": "Frank Ruhl Libre", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "The classic Hebrew serif (Frank-Rühl); newspapers, culture, tradition."},
+        {"family": "David Libre", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Hebrew semi-serif with calligraphic flavour; literary."}
+      ]
+    },
+    {
+      "name": "Slab",
+      "voice": "sturdy, mechanical, friendly-robust; tools, outdoors, kids, coffee",
+      "fonts": [
+        {"family": "Roboto Slab", "license": "Apache-2.0", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Neutral slab; many weights."},
+        {"family": "Zilla Slab", "license": "OFL", "scripts": ["Latin"], "note": "Mozilla's slab; compact, characterful; tech with warmth."},
+        {"family": "Arvo", "license": "OFL", "scripts": ["Latin"], "note": "Geometric slab; bold display wordmarks."},
+        {"family": "Bitter", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Contemporary slab, readable; good lowercase."}
+      ]
+    },
+    {
+      "name": "Monospace",
+      "voice": "code, terminals, infrastructure, honesty",
+      "fonts": [
+        {"family": "JetBrains Mono", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Tall x-height, rectangular; developer tools."},
+        {"family": "IBM Plex Mono", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Typewriter warmth; pairs with Plex Sans."},
+        {"family": "Space Mono", "license": "OFL", "scripts": ["Latin"], "note": "Quirky geometric mono; retro-futurist."},
+        {"family": "Fira Code", "license": "OFL", "scripts": ["Latin", "Cyrillic", "Greek"], "note": "Ligatures for code; mono with humanist roots."},
+        {"family": "Geist Mono", "license": "OFL", "scripts": ["Latin"], "note": "Crisp Swiss mono."},
+        {"family": "Martian Mono", "license": "OFL", "scripts": ["Latin"], "note": "Wide, heavy, variable width; bold tech display."}
+      ]
+    },
+    {
+      "name": "Display and condensed",
+      "voice": "loud, sport, events, youth, streetwear",
+      "fonts": [
+        {"family": "Bebas Neue", "license": "OFL", "scripts": ["Latin"], "note": "Condensed all-caps; ubiquitous in sports/events (sameness risk)."},
+        {"family": "Anton", "license": "OFL", "scripts": ["Latin"], "note": "Heavy condensed grotesque; impact without Impact."},
+        {"family": "Oswald", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Condensed gothic; posters, news."},
+        {"family": "Unbounded", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Wide, soft display; web3/tech-culture flavour."},
+        {"family": "Syne", "license": "OFL", "scripts": ["Latin"], "note": "Art-school wide grotesque; culture, music."},
+        {"family": "Righteous", "license": "OFL", "scripts": ["Latin"], "note": "Art-deco-ish display; retro consumer."},
+        {"family": "Chivo", "license": "OFL", "scripts": ["Latin"], "note": "Grotesque display with weight range; bold caps."},
+        {"family": "Secular One", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Heavy Hebrew display; bold friendly headlines."},
+        {"family": "Suez One", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Hebrew display with strong horizontals; posters, food."},
+        {"family": "Karantina", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Condensed Hebrew/Latin display with retro Israeli signage feel."}
+      ]
+    },
+    {
+      "name": "Script and calligraphic",
+      "voice": "handmade, personal, elegant or playful; use with great care (legibility, cliché)",
+      "fonts": [
+        {"family": "Great Vibes", "license": "OFL", "scripts": ["Latin"], "note": "Formal pointed-pen script (Copperplate family); weddings cliché; fine for a single initial."},
+        {"family": "Pinyon Script", "license": "OFL", "scripts": ["Latin"], "note": "Spencerian/Copperplate formal script; thin hairlines (large sizes only)."},
+        {"family": "Allura", "license": "OFL", "scripts": ["Latin"], "note": "Lighter formal script; beauty, events."},
+        {"family": "Dancing Script", "license": "OFL", "scripts": ["Latin"], "note": "Casual brush-ish script; friendly; overused."},
+        {"family": "Pacifico", "license": "OFL", "scripts": ["Latin"], "note": "Surf-style brush script; retro food/drink."},
+        {"family": "Kaushan Script", "license": "OFL", "scripts": ["Latin"], "note": "Energetic brush; sport and food."},
+        {"family": "Caveat", "license": "OFL", "scripts": ["Latin", "Cyrillic"], "note": "Handwriting, not calligraphy; notes and education tone."},
+        {"family": "Sacramento", "license": "OFL", "scripts": ["Latin"], "note": "Monoline script, 1950s; lifestyle."},
+        {"family": "Parisienne", "license": "OFL", "scripts": ["Latin"], "note": "Casual connected script, French flavour."},
+        {"family": "Tangerine", "license": "OFL", "scripts": ["Latin"], "note": "Chancery-italic-based script; elegant, delicate."},
+        {"family": "Amatic SC", "license": "OFL", "scripts": ["Latin", "Hebrew"], "note": "Hand-drawn condensed caps; cafés and crafts; includes Hebrew."}
+      ]
+    },
+    {
+      "name": "Historic broad-pen hands",
+      "voice": "heritage, craft brewing, games, academia, church, fantasy",
+      "fonts": [
+        {"family": "Uncial Antiqua", "license": "OFL", "scripts": ["Latin"], "note": "Uncial (round broad-pen capitals); Celtic/medieval; can read as costume."},
+        {"family": "UnifrakturMaguntia", "license": "OFL", "scripts": ["Latin"], "note": "Textura blackletter; newspapers, metal, beer; illegible to many at small size."},
+        {"family": "Pirata One", "license": "OFL", "scripts": ["Latin"], "note": "Modern blackletter display; streetwear, music."},
+        {"family": "MedievalSharp", "license": "OFL", "scripts": ["Latin"], "note": "Gothic-cursive hybrid; games."},
+        {"family": "Cinzel Decorative", "license": "OFL", "scripts": ["Latin"], "note": "Roman capitals with flourishes; luxury, film."},
+        {"family": "IM Fell English", "license": "OFL", "scripts": ["Latin"], "note": "17th-century printing types; antiquarian, publishing."}
+      ]
+    },
+    {
+      "name": "Hebrew",
+      "voice": "Hebrew-first brands or bilingual lockups; pick by voice like Latin",
+      "fonts": [
+        {"family": "Heebo", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Hebrew extension of Roboto; neutral UI sans; the safe default."},
+        {"family": "Assistant", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Hebrew Source Sans; humanist, friendly, clean."},
+        {"family": "Rubik", "license": "OFL", "scripts": ["Hebrew", "Latin", "Cyrillic", "Arabic"], "note": "Rounded corners, bold weights; consumer and kids; very common in Israeli startups."},
+        {"family": "Alef", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Open, geometric Hebrew; tech."},
+        {"family": "Varela Round", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Rounded geometric; soft consumer brands."},
+        {"family": "Noto Sans Hebrew", "license": "OFL", "scripts": ["Hebrew"], "note": "Neutral, complete; pair with Noto Sans."},
+        {"family": "Miriam Libre", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Classic Israeli sans (Miriam); institutional."},
+        {"family": "Bellefair", "license": "OFL", "scripts": ["Hebrew", "Latin"], "note": "Light, elegant Hebrew with Latin; fashion, culture."}
+      ]
+    },
+    {
+      "name": "Arabic",
+      "voice": "Arabic-first or bilingual lockups",
+      "fonts": [
+        {"family": "Cairo", "license": "OFL", "scripts": ["Arabic", "Latin"], "note": "Kufi-leaning contemporary sans; tech, media."},
+        {"family": "Tajawal", "license": "OFL", "scripts": ["Arabic", "Latin"], "note": "Geometric, clean; apps."},
+        {"family": "Almarai", "license": "OFL", "scripts": ["Arabic", "Latin"], "note": "Modern sans with multiple weights."},
+        {"family": "Amiri", "license": "OFL", "scripts": ["Arabic", "Latin"], "note": "Classical Naskh; culture, publishing, religion."},
+        {"family": "Reem Kufi", "license": "OFL", "scripts": ["Arabic", "Latin"], "note": "Display Kufi; logos and headlines."},
+        {"family": "Noto Naskh Arabic", "license": "OFL", "scripts": ["Arabic"], "note": "Neutral Naskh text face."}
+      ]
+    },
+    {
+      "name": "CJK",
+      "voice": "Japanese, Korean or Chinese wordmarks",
+      "fonts": [
+        {"family": "Noto Sans JP", "license": "OFL", "scripts": ["Japanese", "Latin"], "note": "Neutral gothic; pair with Noto Sans."},
+        {"family": "Zen Kaku Gothic New", "license": "OFL", "scripts": ["Japanese", "Latin"], "note": "Warm gothic with character."},
+        {"family": "Noto Serif JP", "license": "OFL", "scripts": ["Japanese", "Latin"], "note": "Mincho for tradition and culture."},
+        {"family": "Noto Sans KR", "license": "OFL", "scripts": ["Korean", "Latin"], "note": "Neutral Korean sans."},
+        {"family": "Noto Sans SC", "license": "OFL", "scripts": ["Simplified Chinese", "Latin"], "note": "Neutral Chinese sans."},
+        {"family": "Noto Sans TC", "license": "OFL", "scripts": ["Traditional Chinese", "Latin"], "note": "Neutral Traditional Chinese sans."}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+.DS_Store
+**/.DS_Store
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+*.log
+*.swp
+node_modules/
+*.tgz
+.env
+.env.local
+logo-craft-workspace/

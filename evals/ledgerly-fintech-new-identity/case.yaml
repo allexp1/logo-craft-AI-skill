@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: ledgerly-fintech-new-identity
+expected_outcome: |
+  A complete small identity for "Ledgerly" (a Next.js invoicing app for freelancers, brand colour #0F766E, font Manrope in the repo) built from the project files without asking questions: a brief drawn from the repo, several concepts shown in black at equal size with one chosen and reasons given, a symbol SVG that is a filled-path master with a viewBox and no text/gradients/filters and that survives 16 px, a wordmark set in a real licensed font, lockups, a palette with contrast and colour-vision checks, an exported icon kit (favicon.ico, PWA icons incl. maskable, apple-touch-icon, iOS 1024, Android adaptive), and a brand guide that states what was and was not tested (trademark clearance not done). Nothing written into the app's own folders.
+context:
+  scaffold_script: place-files.sh

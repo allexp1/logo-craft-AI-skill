@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Checks the skill and rebuilds what is derived from it. Run after any edit:
+#
+#   bash scripts/build.sh           # check, then rebuild the hash and the package
+#   bash scripts/build.sh --check   # check only, write nothing
+#
+# Checks: the SKILL.md frontmatter (name, version, description length), that
+# the version matches package.json and has a CHANGELOG.md entry, that every
+# reference, script and asset SKILL.md points at exists, and that every Python
+# script compiles.
+# Rebuilds: logo-craft/.living/ORIGINAL.sha256 and dist/logo-craft.skill, only
+# when they are out of date, so a second run leaves the working tree unchanged.
+
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+CHECK_ONLY=0
+[[ "${1:-}" == "--check" ]] && CHECK_ONLY=1
+
+SKILL="logo-craft"
+SKILL_MD="$SKILL/SKILL.md"
+HASH_FILE="$SKILL/.living/ORIGINAL.sha256"
+DIST="dist/$SKILL.skill"
+
+fail() { echo "error: $*" >&2; exit 1; }
+
+sha256_of() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    sha256sum "$1" | awk '{print $1}'
+  fi
+}
+
+# True when the package exists and unpacks to exactly the skill folder.
+dist_is_current() {
+  [[ -f "$DIST" ]] || return 1
+  local tmp rc=0
+  tmp="$(mktemp -d)"
+  unzip -q "$DIST" -d "$tmp" 2>/dev/null \
+    && diff -r -x .DS_Store -x __pycache__ "$tmp/$SKILL" "$SKILL" >/dev/null 2>&1 \
+    || rc=1
+  rm -rf "$tmp"
+  return $rc
+}
+
+[[ -f "$SKILL_MD" ]] || fail "$SKILL_MD not found"
+
+# Frontmatter: the first block between --- lines must hold name, version, and
+# a description of at most 1024 characters.
+FRONT="$(awk '/^---[[:space:]]*$/ {n++; next} n==1 {print} n>=2 {exit}' "$SKILL_MD")"
+NAME="$(printf '%s\n' "$FRONT" | awk -F': *' '/^name:/ {print $2; exit}')"
+SKILL_VERSION="$(printf '%s\n' "$FRONT" | awk -F'"' '/^version:/ {print $2; exit}')"
+DESC="$(printf '%s\n' "$FRONT" | sed -n 's/^description: //p' | sed 's/^"//; s/"$//')"
+DESC_LEN="$(printf '%s' "$DESC" | wc -m | tr -d ' ')"
+
+[[ "$NAME" == "$SKILL" ]] || fail "frontmatter name is '$NAME', expected $SKILL"
+[[ -n "$SKILL_VERSION" ]] || fail "no quoted version in the SKILL.md frontmatter"
+(( DESC_LEN > 0 )) || fail "no description in the SKILL.md frontmatter"
+(( DESC_LEN <= 1024 )) || fail "description is $DESC_LEN characters; the limit is 1024"
+
+LINES="$(wc -l < "$SKILL_MD" | tr -d ' ')"
+(( LINES <= 500 )) || fail "SKILL.md is $LINES lines; keep it under 500 and move depth into references/"
+
+PKG_VERSION="$(sed -n 's/^  "version": "\(.*\)",$/\1/p' package.json)"
+[[ "$PKG_VERSION" == "$SKILL_VERSION" ]] \
+  || fail "version mismatch: SKILL.md $SKILL_VERSION, package.json $PKG_VERSION"
+
+grep -q "^## $SKILL_VERSION " CHANGELOG.md \
+  || fail "CHANGELOG.md has no entry for $SKILL_VERSION"
+
+# Every reference, script and asset that SKILL.md points at must exist.
+for ref in $(grep -o 'references/[a-z0-9-]*\.md' "$SKILL_MD" | sort -u); do
+  [[ -f "$SKILL/$ref" ]] || fail "SKILL.md mentions $ref, which does not exist"
+done
+for s in $(grep -oE '[a-z_]+\.py' "$SKILL_MD" | sort -u); do
+  [[ -f "$SKILL/scripts/$s" ]] || fail "SKILL.md mentions $s, which is not in $SKILL/scripts/"
+done
+for a in $(grep -oE 'assets/[a-z0-9-]+\.[a-z]+' "$SKILL_MD" | sort -u); do
+  [[ -f "$SKILL/$a" ]] || fail "SKILL.md mentions $a, which does not exist"
+done
+# And every reference file should be reachable from SKILL.md.
+for f in "$SKILL"/references/*.md; do
+  grep -q "references/$(basename "$f")" "$SKILL_MD" || fail "$(basename "$f") is not mentioned in SKILL.md"
+done
+
+# Every Python script must at least compile.
+python3 -m py_compile "$SKILL"/scripts/*.py || fail "a script in $SKILL/scripts does not compile"
+find "$SKILL" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+
+if (( CHECK_ONLY )); then
+  [[ "$(cat "$HASH_FILE" 2>/dev/null)" == "$(sha256_of "$SKILL_MD")" ]] \
+    || fail "$HASH_FILE is out of date; run 'bash scripts/build.sh'"
+  dist_is_current || fail "$DIST is missing or out of date; run 'bash scripts/build.sh'"
+  echo "$SKILL $SKILL_VERSION: checks passed"
+  exit 0
+fi
+
+HASH="$(sha256_of "$SKILL_MD")"
+[[ "$(cat "$HASH_FILE" 2>/dev/null)" == "$HASH" ]] || echo "$HASH" > "$HASH_FILE"
+
+if ! dist_is_current; then
+  mkdir -p dist
+  rm -f "$DIST"
+  zip -q -r -X "$DIST" "$SKILL" -x '*.DS_Store' '*/__pycache__/*' '*.pyc'
+fi
+
+echo "$SKILL $SKILL_VERSION"
+echo "  description: $DESC_LEN / 1024 characters"
+echo "  SKILL.md:    $LINES lines"
+echo "  hash:        $(cat "$HASH_FILE")"
+echo "  package:     $DIST ($(unzip -l "$DIST" | tail -1 | awk '{print $2}') entries)"
