@@ -122,6 +122,17 @@ assert tags == ["path", "style"], (tags, r)
 assert not root.attrib.get("style") and not root.attrib.get("filter"), (root.attrib, r)
 assert set(root[0].attrib) == {"d"}, (root[0].attrib, r)
 assert "@import" not in (root[1].text or "") and ".a{fill:#f00}" in root[1].text
+# review round 3: split <style> text, CSS escape in a presentation attribute, quoted string / unknown function in CSS
+root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><style>.a{fill:#f00}<b/>@import "http://e";</style>'
+                     '<path d="M0 0h1" fill="u\\72l(http://e)" stroke="rgb(1,2,3)"/><path d="M0 0h1" style="fill: attr(data-x url)"/>'
+                     '<path d="M0 0h1" style="fill: url(#g); stroke: oklch(60% 0.1 200)"/>'
+                     '<style>@media (prefers-color-scheme: dark) { .lc { fill: #FFFFFF; } }</style><style>@font-face{src:local(x)}</style></svg>')
+r = sanitize_svg(root)
+tags = [el.tag.split("}")[-1] for el in root]
+assert tags == ["path", "path", "path", "style"], (tags, r)
+assert set(root[0].attrib) == {"d", "stroke"}, (root[0].attrib, r)
+assert "style" not in root[1].attrib and root[2].get("style"), (root[1].attrib, root[2].attrib, r)
+assert "prefers-color-scheme" in root[3].text
 # fail closed on unparsable input
 import tempfile, os
 from _common import safe_copy_for_render

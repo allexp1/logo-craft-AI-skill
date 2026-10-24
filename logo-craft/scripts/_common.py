@@ -93,15 +93,65 @@ def read_svg(path: str | Path) -> tuple[ET.ElementTree, ET.Element]:
     return tree, tree.getroot()
 
 
-_ANIM_TAGS = {"animate", "set", "animateTransform", "animateMotion", "animateColor", "discard", "mpath"}
-UNSAFE_TAGS = {"script", "foreignObject", "iframe", "embed", "object", "audio", "video", "handler", "listener"} | _ANIM_TAGS
-# a url() whose target is not a same-document id (fill="url(http://…)", filter, mask, clip-path, marker-*)
-_EXT_URL_RE = re.compile(r"url\(\s*['\"]?\s*(?!#)", re.I)
-# CSS we never need in a logo and cannot safely inspect by regex: escapes (\72 = 'r'), imports,
-# IE/Mozilla script hooks, any external url()
-_CSS_SUSPECT = re.compile(r"\\|@import|@namespace|expression\s*\(|-moz-binding|behavior\s*:|url\(\s*['\"]?\s*(?!#)", re.I)
+_ANIM_TAGS = {"animate", "set", "animatetransform", "animatemotion", "animatecolor", "discard", "mpath"}
+UNSAFE_TAGS = {"script", "foreignobject", "iframe", "embed", "object", "audio", "video", "handler", "listener"} | _ANIM_TAGS
+_EXTERNAL_REF_TAGS = {"use", "image", "feimage", "mpath", "textpath", "tref"}
 _SAFE_DATA_URI = re.compile(r"^data:image/(png|jpe?g|gif|webp)[;,]", re.I)
-_EXTERNAL_REF_TAGS = {"use", "image", "feImage", "mpath", "textPath", "tref"}
+
+# CSS allow-list. A logo never needs more than paint, geometry and the one
+# dark-mode media query the favicon exporter writes. Everything else (escapes,
+# quotes, @import, unknown properties or functions, external url()) fails the
+# whole style, which is then dropped. Presentation attributes are CSS-parsed by
+# browsers too, so their values go through the same value rule.
+_CSS_PROPS = {
+    "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
+    "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset", "stroke-opacity", "opacity", "color",
+    "display", "visibility", "paint-order", "mix-blend-mode", "isolation", "shape-rendering",
+    "vector-effect", "transform", "transform-origin", "transform-box", "clip-rule", "clip-path", "mask",
+    "filter", "stop-color", "stop-opacity", "flood-color", "flood-opacity", "lighting-color",
+    "color-interpolation", "color-interpolation-filters", "font-family", "font-size", "font-weight",
+    "font-style", "letter-spacing", "text-anchor", "dominant-baseline", "overflow", "pointer-events",
+}
+_CSS_FUNCS = {"url", "rgb", "rgba", "hsl", "hsla", "oklch", "oklab", "lab", "lch", "color", "var",
+              "translate", "translatex", "translatey", "scale", "scalex", "scaley", "rotate", "skewx", "skewy", "matrix"}
+_CSS_VALUE_OK = re.compile(r"^[-\w\s#.%,/()!]*$")       # no quotes, backslashes, colons, semicolons, angle brackets, '@'
+_CSS_FUNC_RE = re.compile(r"([A-Za-z-]+)\s*\(")
+_CSS_URL_RE = re.compile(r"url\s*\(", re.I)
+_CSS_URL_ID_RE = re.compile(r"url\s*\(\s*#[\w:.-]+\s*\)", re.I)
+_CSS_MEDIA_RE = re.compile(r"^\s*\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)\s*$", re.I)
+_CSS_SELECTOR_OK = re.compile(r"^[\w\s.#*:>,+~{}()-]*$")
+
+
+def css_value_is_safe(value: str) -> bool:
+    """One CSS value (or presentation-attribute value): plain tokens, known
+    functions, url() only to a same-document id."""
+    if not _CSS_VALUE_OK.match(value):
+        return False
+    for f in _CSS_FUNC_RE.findall(value):
+        if f.lower() not in _CSS_FUNCS:
+            return False
+    urls = _CSS_URL_RE.findall(value)
+    return len(urls) == len(_CSS_URL_ID_RE.findall(value))
+
+
+def css_is_safe(text: str) -> bool:
+    """A style sheet or style attribute body against the allow-list above."""
+    if any(c in text for c in "\\\"'<>&"):
+        return False
+    for m in re.finditer(r"@([\w-]+)([^{;]*)", text):   # the only at-rule a logo may carry
+        if m.group(1).lower() != "media" or not _CSS_MEDIA_RE.match(m.group(2) or ""):
+            return False
+    blocks = re.findall(r"\{([^{}]*)\}", text)
+    for block in blocks:
+        for decl in block.split(";"):
+            if not decl.strip():
+                continue
+            prop, sep, val = decl.partition(":")
+            if not sep or prop.strip().lower() not in _CSS_PROPS or not css_value_is_safe(val.strip()):
+                return False
+    rest = re.sub(r"\{[^{}]*\}", "", text)
+    rest = re.sub(r"@media[^{]*", "", rest, flags=re.I)
+    return bool(_CSS_SELECTOR_OK.match(rest))
 
 
 def _safe_href(v: str) -> bool:
@@ -111,23 +161,27 @@ def _safe_href(v: str) -> bool:
 
 def _clean_attrs(el: ET.Element, removed: list[str]) -> bool:
     """Strip unsafe attributes from one element. Returns True when the element
-    itself has to go (a <use>/<image> whose only purpose was an external ref)."""
-    tag = local(el.tag)
+    itself has to go (a <use>/<image> whose only purpose was an external ref).
+    Names are compared lower-cased: the HTML parser lower-cases inline SVG."""
+    tag = local(el.tag).lower()
     drop = False
     for a in list(el.attrib):
-        la = local(a)
+        la = local(a).lower()
         v = el.get(a) or ""
-        if la.lower().startswith("on"):
+        if la.startswith("on"):
             del el.attrib[a]; removed.append(f"@{la}")
         elif la == "href":  # any namespace or prefix
             if not _safe_href(v):
                 del el.attrib[a]; removed.append(f"@{la} external")
                 drop = tag in _EXTERNAL_REF_TAGS
         elif la == "style":
-            if _CSS_SUSPECT.search(v):
+            if not css_is_safe("{" + v + "}"):
                 del el.attrib[a]; removed.append("@style")
-        elif _EXT_URL_RE.search(v):
-            del el.attrib[a]; removed.append(f"@{la} url()")
+        elif la in _CSS_PROPS:
+            if not css_value_is_safe(v):
+                del el.attrib[a]; removed.append(f"@{la}")
+        elif "\\" in v or (_CSS_URL_RE.search(v) and not css_value_is_safe(v)):
+            del el.attrib[a]; removed.append(f"@{la}")
     return drop
 
 
@@ -135,20 +189,22 @@ def sanitize_svg(root: ET.Element) -> list[str]:
     """Remove active or external content from an SVG tree, in place. A logo is
     paths and paint, so the rule is an allow-list: no scripts, foreignObject
     or SMIL animation; no event handlers; hrefs only to same-document ids or
-    inline PNG/JPEG/GIF/WebP data; url() only to same-document ids, in any
-    attribute; styles dropped whole when they hold escapes, @import or an
-    external url(). Anything we render or embed may come from elsewhere.
-    Returns a list describing what was removed (empty = already clean)."""
+    inline PNG/JPEG/GIF/WebP data; CSS (style sheets, style attributes and
+    presentation attributes) only from a small set of paint and geometry
+    properties with url() to same-document ids, else the style goes whole.
+    Anything we render or embed may come from elsewhere. Returns a list
+    describing what was removed (empty = already clean)."""
     removed: list[str] = []
     _clean_attrs(root, removed)
 
     def walk(parent: ET.Element) -> None:
         for child in list(parent):
-            tag = local(child.tag)
+            tag = local(child.tag).lower()
             if tag in UNSAFE_TAGS:
                 parent.remove(child); removed.append(f"<{tag}>"); continue
-            if tag == "style" and child.text and _CSS_SUSPECT.search(child.text):
-                parent.remove(child); removed.append("<style>"); continue
+            if tag == "style":
+                if len(child) or not css_is_safe("".join(child.itertext())):
+                    parent.remove(child); removed.append("<style>"); continue
             if _clean_attrs(child, removed):
                 parent.remove(child); removed.append(f"<{tag} external>"); continue
             walk(child)
