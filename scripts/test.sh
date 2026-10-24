@@ -121,7 +121,7 @@ tags = [el.tag.split("}")[-1] for el in root]
 assert tags == ["path", "style"], (tags, r)
 assert not root.attrib.get("style") and not root.attrib.get("filter"), (root.attrib, r)
 assert set(root[0].attrib) == {"d"}, (root[0].attrib, r)
-assert "@import" not in (root[1].text or "") and ".a{fill:#f00}" in root[1].text
+assert root[1].text == ".a { fill: #f00 }", root[1].text  # re-serialised from the parsed parts
 # review round 3: split <style> text, CSS escape in a presentation attribute, quoted string / unknown function in CSS
 root = ET.fromstring('<svg xmlns="http://www.w3.org/2000/svg"><style>.a{fill:#f00}<b/>@import "http://e";</style>'
                      '<path d="M0 0h1" fill="u\\72l(http://e)" stroke="rgb(1,2,3)"/><path d="M0 0h1" style="fill: attr(data-x url)"/>'
@@ -133,6 +133,17 @@ assert tags == ["path", "path", "path", "style"], (tags, r)
 assert set(root[0].attrib) == {"d", "stroke"}, (root[0].attrib, r)
 assert "style" not in root[1].attrib and root[2].get("style"), (root[1].attrib, root[2].attrib, r)
 assert "prefers-color-scheme" in root[3].text
+# review round 4: unbalanced braces / stray tokens must not smuggle a declaration; styles are rebuilt from parsed parts
+from _common import css_rebuild, css_rebuild_declarations
+assert css_rebuild(".a{fill:#000}} .b{fill:url(x)") is None
+assert css_rebuild(".a{fill:#000} .b{fill:url(javascript:x)") is None
+assert css_rebuild(".a{fill:#000}/* */.b{fill:url(x)}") is None
+assert css_rebuild(".a{fill:#000} @media screen { .b{fill:#000} }") is None
+assert css_rebuild("@media (prefers-color-scheme: dark) { .lc { fill: #FFFFFF; } }") == "@media (prefers-color-scheme: dark) { .lc { fill: #FFFFFF } }"
+assert css_rebuild(" .a ,  .b{ fill : #f00 ; stroke-width:2 }") == ".a , .b { fill: #f00; stroke-width: 2 }"
+assert css_rebuild_declarations("fill: url(#g); stroke: oklch(60% 0.1 200)") == "fill: url(#g); stroke: oklch(60% 0.1 200)"
+assert css_rebuild_declarations("fill:#000} .b{fill:url(x)") is None
+assert css_rebuild_declarations("fill: url(#g) ) url(http://e") is None
 # fail closed on unparsable input
 import tempfile, os
 from _common import safe_copy_for_render

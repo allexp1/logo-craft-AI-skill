@@ -114,44 +114,125 @@ _CSS_PROPS = {
 }
 _CSS_FUNCS = {"url", "rgb", "rgba", "hsl", "hsla", "oklch", "oklab", "lab", "lch", "color", "var",
               "translate", "translatex", "translatey", "scale", "scalex", "scaley", "rotate", "skewx", "skewy", "matrix"}
-_CSS_VALUE_OK = re.compile(r"^[-\w\s#.%,/()!]*$")       # no quotes, backslashes, colons, semicolons, angle brackets, '@'
+_CSS_VALUE_OK = re.compile(r"^[-\w\s#.%,/()!]*$")       # no quotes, backslashes, colons, semicolons, braces, angle brackets, '@'
 _CSS_FUNC_RE = re.compile(r"([A-Za-z-]+)\s*\(")
 _CSS_URL_RE = re.compile(r"url\s*\(", re.I)
 _CSS_URL_ID_RE = re.compile(r"url\s*\(\s*#[\w:.-]+\s*\)", re.I)
 _CSS_MEDIA_RE = re.compile(r"^\s*\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)\s*$", re.I)
-_CSS_SELECTOR_OK = re.compile(r"^[\w\s.#*:>,+~{}()-]*$")
+_CSS_SELECTOR_RE = re.compile(r"^[\w\s.#*:>,+~-]+$")   # no parens, braces, quotes, '@' or '/'
+_CSS_FORBIDDEN = "\\\"'<&"
 
 
 def css_value_is_safe(value: str) -> bool:
     """One CSS value (or presentation-attribute value): plain tokens, known
-    functions, url() only to a same-document id."""
-    if not _CSS_VALUE_OK.match(value):
+    functions with balanced parentheses, url() only to a same-document id."""
+    if not value or not _CSS_VALUE_OK.match(value) or value.count("(") != value.count(")"):
         return False
     for f in _CSS_FUNC_RE.findall(value):
         if f.lower() not in _CSS_FUNCS:
             return False
-    urls = _CSS_URL_RE.findall(value)
-    return len(urls) == len(_CSS_URL_ID_RE.findall(value))
+    return len(_CSS_URL_RE.findall(value)) == len(_CSS_URL_ID_RE.findall(value))
+
+
+class _CssCursor:
+    def __init__(self, text: str):
+        self.t, self.i = text, 0
+
+    def ws(self) -> None:
+        while self.i < len(self.t) and self.t[self.i].isspace():
+            self.i += 1
+
+    def eat(self, s: str) -> bool:
+        if self.t.startswith(s, self.i):
+            self.i += len(s)
+            return True
+        return False
+
+    def until(self, stops: str) -> str:
+        j = self.i
+        while j < len(self.t) and self.t[j] not in stops:
+            j += 1
+        out, self.i = self.t[self.i:j], j
+        return out
+
+    def done(self) -> bool:
+        return self.i >= len(self.t)
+
+
+def _css_declarations(c: _CssCursor) -> list[str] | None:
+    """Parse `prop: value;`* up to and including the closing brace. None on
+    anything outside the allow-list, a missing brace or a stray character."""
+    out: list[str] = []
+    while True:
+        c.ws()
+        if c.eat("}"):
+            return out
+        if c.done():
+            return None
+        prop = c.until(":;{}").strip()
+        if not c.eat(":"):
+            return None
+        val = c.until(";{}").strip()
+        c.eat(";")
+        if prop.lower() not in _CSS_PROPS or not css_value_is_safe(val):
+            return None
+        out.append(f"{prop.lower()}: {val}")
+
+
+def _css_rules(c: _CssCursor, nested: bool) -> list[str] | None:
+    out: list[str] = []
+    while True:
+        c.ws()
+        if c.done():
+            return None if nested else out
+        if nested and c.eat("}"):
+            return out
+        if c.eat("@"):
+            if nested or not c.eat("media"):
+                return None
+            cond = c.until("{;}")
+            m = _CSS_MEDIA_RE.match(cond)
+            if not m or not c.eat("{"):
+                return None
+            inner = _css_rules(c, nested=True)
+            if inner is None:
+                return None
+            out.append(f"@media (prefers-color-scheme: {m.group(1).lower()}) {{ {' '.join(inner)} }}")
+            continue
+        sel = c.until("{;}")
+        if not _CSS_SELECTOR_RE.match(sel) or not c.eat("{"):
+            return None
+        decls = _css_declarations(c)
+        if decls is None:
+            return None
+        out.append(f"{' '.join(sel.split())} {{ {'; '.join(decls)} }}")
+
+
+def css_rebuild(text: str) -> str | None:
+    """Parse a style sheet with the tiny grammar a logo may carry (rules of
+    allow-listed declarations, plus `@media (prefers-color-scheme: …)` blocks
+    of such rules) and return it re-serialised from the parsed parts. None
+    when anything falls outside: the caller drops the style sheet whole. The
+    output never contains text that was not parsed, so unbalanced braces,
+    comments and stray tokens cannot smuggle a declaration past the check."""
+    if any(ch in text for ch in _CSS_FORBIDDEN) or "/*" in text:
+        return None
+    rules = _css_rules(_CssCursor(text), nested=False)
+    return None if rules is None else " ".join(rules)
+
+
+def css_rebuild_declarations(text: str) -> str | None:
+    """Same for a style attribute body (declarations only)."""
+    if any(ch in text for ch in _CSS_FORBIDDEN) or "/*" in text or "{" in text or "}" in text:
+        return None
+    c = _CssCursor(text + "}")
+    decls = _css_declarations(c)
+    return None if decls is None or not c.done() else "; ".join(decls)
 
 
 def css_is_safe(text: str) -> bool:
-    """A style sheet or style attribute body against the allow-list above."""
-    if any(c in text for c in "\\\"'<>&"):
-        return False
-    for m in re.finditer(r"@([\w-]+)([^{;]*)", text):   # the only at-rule a logo may carry
-        if m.group(1).lower() != "media" or not _CSS_MEDIA_RE.match(m.group(2) or ""):
-            return False
-    blocks = re.findall(r"\{([^{}]*)\}", text)
-    for block in blocks:
-        for decl in block.split(";"):
-            if not decl.strip():
-                continue
-            prop, sep, val = decl.partition(":")
-            if not sep or prop.strip().lower() not in _CSS_PROPS or not css_value_is_safe(val.strip()):
-                return False
-    rest = re.sub(r"\{[^{}]*\}", "", text)
-    rest = re.sub(r"@media[^{]*", "", rest, flags=re.I)
-    return bool(_CSS_SELECTOR_OK.match(rest))
+    """True when `text` parses as a style sheet under the allow-list."""
+    return css_rebuild(text) is not None
 
 
 def _safe_href(v: str) -> bool:
@@ -175,8 +256,11 @@ def _clean_attrs(el: ET.Element, removed: list[str]) -> bool:
                 del el.attrib[a]; removed.append(f"@{la} external")
                 drop = tag in _EXTERNAL_REF_TAGS
         elif la == "style":
-            if not css_is_safe("{" + v + "}"):
+            nv = css_rebuild_declarations(v)
+            if nv is None:
                 del el.attrib[a]; removed.append("@style")
+            elif nv != v:
+                el.set(a, nv)
         elif la in _CSS_PROPS:
             if not css_value_is_safe(v):
                 del el.attrib[a]; removed.append(f"@{la}")
@@ -191,8 +275,9 @@ def sanitize_svg(root: ET.Element) -> list[str]:
     or SMIL animation; no event handlers; hrefs only to same-document ids or
     inline PNG/JPEG/GIF/WebP data; CSS (style sheets, style attributes and
     presentation attributes) only from a small set of paint and geometry
-    properties with url() to same-document ids, else the style goes whole.
-    Anything we render or embed may come from elsewhere. Returns a list
+    properties with url() to same-document ids, re-serialised from the parsed
+    parts, else the style goes whole. Anything we render or embed may come
+    from elsewhere. Returns a list
     describing what was removed (empty = already clean)."""
     removed: list[str] = []
     _clean_attrs(root, removed)
@@ -203,8 +288,10 @@ def sanitize_svg(root: ET.Element) -> list[str]:
             if tag in UNSAFE_TAGS:
                 parent.remove(child); removed.append(f"<{tag}>"); continue
             if tag == "style":
-                if len(child) or not css_is_safe("".join(child.itertext())):
+                nv = None if len(child) else css_rebuild("".join(child.itertext()))
+                if nv is None:
                     parent.remove(child); removed.append("<style>"); continue
+                child.text = nv  # only what was parsed is written back
             if _clean_attrs(child, removed):
                 parent.remove(child); removed.append(f"<{tag} external>"); continue
             walk(child)
