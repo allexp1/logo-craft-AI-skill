@@ -133,6 +133,8 @@ bash scripts/publish.sh   # npm publish (logs in if needed; opens the 2FA page)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Ground rule one: this repository never contains third-party logos.
 
+Release: `bash scripts/release.sh` pushes to GitHub, tags the version in `package.json` and creates the release with the `.skill` bundle attached; `bash scripts/publish.sh` publishes the same version to npm (it logs in first when needed).
+
 ## Research behind it
 
 `research/` holds the three studies the skill was synthesised from: a ChatGPT deep-research export on professional logo design, two Codex CLI research runs (design canon and technical implementation), and the Fable synthesis notes with the decisions taken. `logo-craft/references/sources.md` is the bibliography.
